@@ -18,7 +18,7 @@ export class Reacteroids extends Component {
   constructor() {
     super();
     this.state = {
-      asteroidData: {},
+      asteroidData: [],
       screen: {
         width: window.innerWidth,
         height: window.innerHeight,
@@ -32,7 +32,7 @@ export class Reacteroids extends Component {
         down  : 0,
         space : 0,
       },
-      asteroidCount: 3,
+      asteroidCount: 1,
       currentScore: 0,
       topScore: localStorage['topscore'] || 0,
       inGame: false
@@ -187,6 +187,7 @@ export class Reacteroids extends Component {
   }
 
   generateAsteroids(count){
+    var dataForAsteroids = this.state.asteroidData
     let asteroids = [];
     let ship = this.ship[0];
     for (let i = 0; i < count; i++) {
@@ -203,7 +204,16 @@ export class Reacteroids extends Component {
         isChunk: false
       });
       this.createObject(asteroid, 'asteroids');
+      console.log(this.state.asteroidData)
+      //this.setState({asteroidData: this.state.asteroidData.slice(1)})
+    
+    
+        console.log("new array", this.state.asteroidData.0)
+      
+    
+
     }
+
   }
 
   createObject(item, group){

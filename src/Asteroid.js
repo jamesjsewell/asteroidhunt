@@ -55,7 +55,7 @@ export default class Asteroid {
           addScore: this.addScore.bind(this),
           isChunk: true
         });
-        this.create(asteroid, 'asteroids');
+        //this.create(asteroid, 'asteroids');
       }
     }
   }
