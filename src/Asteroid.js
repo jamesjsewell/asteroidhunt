@@ -91,16 +91,16 @@ export default class Asteroid {
     context.strokeStyle = '#FFF';
     
     if(this.isChunk === false){
-        context.fillStyle = "green"
         
+        context.fillStyle = "white"
         context.font = "1.5rem Arial"
         context.fillText(this.theAsteroidData.name,10,20)
         context.textAlign = "center"
         context.fill()
+    
     }
     if(this.isChunk === true){
-      context.fillStyle = "grey"
-      context.fill()
+      
     }
     
     context.lineWidth = 2;
@@ -110,6 +110,7 @@ export default class Asteroid {
       context.lineTo(this.vertices[i].x, this.vertices[i].y);
     }
     context.closePath();
+    context.fillStyle = "black"
     context.fill()
     context.stroke();
     context.restore();

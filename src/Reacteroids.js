@@ -100,6 +100,52 @@ export class Reacteroids extends Component {
 
     window.requestAnimFrame=function(){return window.requestAnimationFrame||window.webkitRequestAnimationFrame||window.mozRequestAnimationFrame||window.oRequestAnimationFrame||window.msRequestAnimationFrame||function(a){window.setTimeout(a,1E3/60)}}();
 
+    
+
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.handleKeys);
+    window.removeEventListener('resize', this.handleKeys);
+    window.removeEventListener('resize', this.handleResize);
+  }
+
+
+  update() {
+    const context = this.state.context;
+    const keys = this.state.keys;
+    const ship = this.ship[0];
+
+    context.save();
+    context.scale(this.state.screen.ratio, this.state.screen.ratio);
+
+    // Motion trail
+    context.globalAlpha = 0.4;
+    context.fillRect(0, 0, this.state.screen.width, this.state.screen.height);
+    context.clearRect(0, 0, this.state.screen.width, this.state.screen.height)
+    context.globalAlpha = 1;
+
+    // Next set of asteroids
+    if(!this.asteroids.length){
+      let count = this.state.asteroidCount + 1;
+      this.setState({ asteroidCount: count });
+      this.generateAsteroids(count)
+    }
+
+    // Check for colisions
+    this.checkCollisionsWith(this.bullets, this.asteroids);
+    this.checkCollisionsWith(this.ship, this.asteroids);
+
+    // Remove or render
+    this.updateObjects(this.particles, 'particles')
+    this.updateObjects(this.asteroids, 'asteroids')
+    this.updateObjects(this.bullets, 'bullets')
+    this.updateObjects(this.ship, 'ship')
+
+
+
+    context.restore();
+
     var ctx = document.querySelector('#bg').getContext('2d')
     if(ctx != null){
       ctx.save();
@@ -155,7 +201,7 @@ export class Reacteroids extends Component {
       var makeStarfield = function(){
         var base = .75;
         var inc = .2;
-        var count = 40;
+        var count = 10;
         var per = 6;
         while(count--){
           var radius = base + inc;
@@ -167,75 +213,15 @@ export class Reacteroids extends Component {
         }
       }
 
-      var loop = function(){
-        window.requestAnimFrame(loop);
-        updateAll(stars);
-         
-        renderAll(stars);
+      if(!stars.length){
+         makeStarfield(); 
       }
-          
-      makeStarfield();      
-      loop();
-
-
-      }
-
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('resize', this.handleKeys);
-    window.removeEventListener('resize', this.handleKeys);
-    window.removeEventListener('resize', this.handleResize);
-  }
-
-
-  update() {
-    const context = this.state.context;
-    const keys = this.state.keys;
-    const ship = this.ship[0];
-
-    context.save();
-    context.scale(this.state.screen.ratio, this.state.screen.ratio);
-
-    // Motion trail
-    context.globalAlpha = 0.4;
-    context.fillRect(0, 0, this.state.screen.width, this.state.screen.height);
-    context.clearRect(0, 0, this.state.screen.width, this.state.screen.height)
-    context.globalAlpha = 1;
-
-    // Next set of asteroids
-    if(!this.asteroids.length){
-      let count = this.state.asteroidCount + 1;
-      this.setState({ asteroidCount: count });
-      this.generateAsteroids(count)
-    }
-
-    // Check for colisions
-    this.checkCollisionsWith(this.bullets, this.asteroids);
-    this.checkCollisionsWith(this.ship, this.asteroids);
-
-    // Remove or render
-    this.updateObjects(this.particles, 'particles')
-    this.updateObjects(this.asteroids, 'asteroids')
-    this.updateObjects(this.bullets, 'bullets')
-    this.updateObjects(this.ship, 'ship')
-
-
-
-    context.restore();
-
-    var ctx = document.querySelector('#bg').getContext('2d')
-    if(ctx != null){
-      ctx.save()
-      ctx.scale(this.state.screen.ratio, this.state.screen.ratio);
       
-      var cw = ctx.width = this.state.screen.width;
-      var ch = ctx.height = this.state.screen.height;
-      ctx.fillRect(0, 0, this.state.screen.width, this.state.screen.height);
-      ctx.clearRect(0, 0, this.state.screen.width, this.state.screen.height); 
-
-      ctx.restore() 
-    }
+      updateAll(stars);
+      ctx.clearRect(0, 0, cw, ch);  
+      renderAll(stars);
+      ctx.restore()
+      }
     // Next frame
     requestAnimationFrame(() => {this.update()});
   }
