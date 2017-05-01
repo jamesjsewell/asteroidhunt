@@ -1,4 +1,5 @@
 import Particle from './Particle';
+import Popup from './popup';
 import { asteroidVertices, randomNumBetween } from './helpers';
 
 export default class Asteroid {
@@ -31,7 +32,7 @@ export default class Asteroid {
     for (let i = 0; i < this.radius; i++) {
       const particle = new Particle({
         lifeSpan: randomNumBetween(60, 100),
-        size: randomNumBetween(1, 3),
+        size: randomNumBetween(1, 6),
         position: {
           x: this.position.x + randomNumBetween(-this.radius/4, this.radius/4),
           y: this.position.y + randomNumBetween(-this.radius/4, this.radius/4)
@@ -61,7 +62,61 @@ export default class Asteroid {
         this.create(asteroid, 'asteroids');
       }
     }
-  }
+
+    if(true){
+
+      const popup = new Popup({
+
+        lifeSpan: 100,
+        size: 0,
+        position: {
+          x: this.position.x ,
+          y: this.position.y 
+        },
+        theAsteroidData: this.theAsteroidData,
+        addScore: this.score,
+        isChunk: this.isChunk,
+        velocity: {
+          x: randomNumBetween(-.2, .2),
+          y: randomNumBetween(-.2, .2)
+        }
+
+
+      });
+
+      this.create(popup, 'particles');
+
+    }
+
+    if(this.isChunk === false){
+
+      const popup = new Popup({
+
+        lifeSpan: 500,
+        size: 0,
+        position: {
+          x: this.position.x ,
+          y: this.position.y+2
+        },
+        theAsteroidData: this.theAsteroidData,
+        addScore: this.score,
+        isChunk: this.isChunk,
+        velocity: {
+          x: randomNumBetween(-.2, .2),
+          y: randomNumBetween(-.2, .2)
+        }
+
+
+      });
+
+      this.create(popup, 'particles');
+
+    }
+
+
+    }
+
+  
 
   render(state){
     // Move
@@ -92,11 +147,11 @@ export default class Asteroid {
     
     if(this.isChunk === false){
         
-        context.fillStyle = "white"
-        context.font = "1.5rem Arial"
-        context.fillText(this.theAsteroidData.name,10,20)
-        context.textAlign = "center"
-        context.fill()
+        // context.fillStyle = "white"
+        // context.font = "1.5rem Arial"
+        // context.fillText(this.theAsteroidData.name,10,20)
+        // context.textAlign = "center"
+        // context.fill()
     
     }
     if(this.isChunk === true){
@@ -110,8 +165,8 @@ export default class Asteroid {
       context.lineTo(this.vertices[i].x, this.vertices[i].y);
     }
     context.closePath();
-    context.fillStyle = "black"
-    context.fill()
+    
+    
     context.stroke();
     context.restore();
 

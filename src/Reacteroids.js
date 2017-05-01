@@ -61,6 +61,7 @@ export class Reacteroids extends Component {
     this.asteroids = [];
     this.bullets = [];
     this.particles = [];
+    this.popups = [];
   }
 
   handleResize(value, e){
