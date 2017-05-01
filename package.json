@@ -1,5 +1,4 @@
 {
-  
   "scripts": {
     "clean": "rimraf dist",
     "build:webpack": "NODE_ENV=production webpack --config webpack.config.prod.js",
@@ -7,7 +6,6 @@
     "start": "node devServer.js",
     "lint": "eslint src"
   },
-
   "keywords": [
     "react",
     "reactjs",
@@ -49,6 +47,7 @@
     "express": "^4.15.2",
     "jquery": "^3.2.1",
     "react": "^0.14.0",
-    "react-dom": "^0.14.0"
+    "react-dom": "^0.14.0",
+    "webpack": "^1.15.0"
   }
 }
