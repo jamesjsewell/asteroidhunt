@@ -1,7 +1,5 @@
 {
-  "name": "react-transform-boilerplate",
-  "version": "1.0.0",
-  "description": "A new Webpack boilerplate with hot reloading React components, and error handling on module and component level.",
+  
   "scripts": {
     "clean": "rimraf dist",
     "build:webpack": "NODE_ENV=production webpack --config webpack.config.prod.js",
@@ -9,10 +7,7 @@
     "start": "node devServer.js",
     "lint": "eslint src"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/gaearon/react-transform-boilerplate.git"
-  },
+
   "keywords": [
     "react",
     "reactjs",
@@ -41,8 +36,6 @@
     "eslint": "^1.3.1",
     "eslint-plugin-react": "^2.3.0",
     "express": "^4.13.3",
-    "react-transform-catch-errors": "^1.0.0",
-    "react-transform-hmr": "^1.0.0",
     "redbox-react": "1.0.1",
     "rimraf": "^2.4.3",
     "style-loader": "^0.13.0",
