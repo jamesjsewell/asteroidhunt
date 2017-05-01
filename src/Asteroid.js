@@ -2,7 +2,9 @@ import Particle from './Particle';
 import { asteroidVertices, randomNumBetween } from './helpers';
 
 export default class Asteroid {
+
   constructor(args) {
+
     this.position = args.position
     this.velocity = {
       x: randomNumBetween(-1.5, 1.5),
@@ -16,11 +18,12 @@ export default class Asteroid {
     this.addScore = args.addScore;
     this.vertices = asteroidVertices(8, args.size)
     this.isChunk = args.isChunk
-    this.asteroidName = args.asteroidName
+    this.theAsteroidData = args.theAsteroidData
 
   }
 
   destroy(){
+
     this.delete = true;
     this.addScore(this.score);
 
@@ -55,7 +58,7 @@ export default class Asteroid {
           addScore: this.addScore.bind(this),
           isChunk: true
         });
-        //this.create(asteroid, 'asteroids');
+        this.create(asteroid, 'asteroids');
       }
     }
   }
@@ -86,11 +89,18 @@ export default class Asteroid {
     context.translate(this.position.x, this.position.y);
     context.rotate(this.rotation * Math.PI / 180);
     context.strokeStyle = '#FFF';
+    
     if(this.isChunk === false){
-        context.fillStyle = "white"
-        context.font = "1rem Arial"
-        context.fillText("Hello World",10,20)
+        context.fillStyle = "green"
+        
+        context.font = "1.5rem Arial"
+        context.fillText(this.theAsteroidData.name,10,20)
         context.textAlign = "center"
+        context.fill()
+    }
+    if(this.isChunk === true){
+      context.fillStyle = "grey"
+      context.fill()
     }
     
     context.lineWidth = 2;
@@ -100,7 +110,9 @@ export default class Asteroid {
       context.lineTo(this.vertices[i].x, this.vertices[i].y);
     }
     context.closePath();
+    context.fill()
     context.stroke();
     context.restore();
+
   }
 }

@@ -4,6 +4,7 @@ import Asteroid from './Asteroid';
 import { randomNumBetweenExcluding } from './helpers';
 import Backbone from 'backbone'
 import axios from 'axios'
+import asteroidApiObj from './asteroidApiObj.js'
 const KEY = {
   LEFT:  37,
   RIGHT: 39,
@@ -16,9 +17,27 @@ const KEY = {
 
 export class Reacteroids extends Component {
   constructor() {
+    // get only asteroids that have close_approach_data
+    var closeAppoachAsteroids = asteroidApiObj.near_earth_objects
+      .filter(function(asteroid) {
+        return asteroid.close_approach_data.length > 0;
+      });
+    var mappedAsteroidData = closeAppoachAsteroids.map(function(asteroid) {
+      var sizeInKm = asteroid.estimated_diameter.kilometers;
+      return {
+        name: asteroid.name,
+        earliestApproachDate: asteroid.close_approach_data[0].close_approach_date,
+        missDistanceInKm: +asteroid.close_approach_data[0].miss_distance.kilometers, //convert string to number
+        orbitingBody: asteroid.close_approach_data[0].orbiting_body,
+        sizeInKm: (sizeInKm.estimated_diameter_max + sizeInKm.estimated_diameter_min) / 2,
+        speedInKm: +asteroid.close_approach_data[0].relative_velocity.kilometers_per_hour //convert string to number
+      }
+    });
+
+    console.log('mappedAsteroidData', mappedAsteroidData);
     super();
     this.state = {
-      asteroidData: [],
+      asteroidData: mappedAsteroidData,
       screen: {
         width: window.innerWidth,
         height: window.innerHeight,
@@ -35,7 +54,8 @@ export class Reacteroids extends Component {
       asteroidCount: 1,
       currentScore: 0,
       topScore: localStorage['topscore'] || 0,
-      inGame: false
+      inGame: false,
+      backgroundCanvas: null
     }
     this.ship = [];
     this.asteroids = [];
@@ -66,35 +86,99 @@ export class Reacteroids extends Component {
 
 
   componentDidMount() {
+
     window.addEventListener('keyup',   this.handleKeys.bind(this, false));
     window.addEventListener('keydown', this.handleKeys.bind(this, true));
     window.addEventListener('resize',  this.handleResize.bind(this, false));
 
     const context = this.refs.canvas.getContext('2d');
-    this.setState({ context: context });
+    const background = document.querySelector('#bg').getContext('2d')
+   
+    this.setState({ context: context, backgroundCanvas: background});
     this.startGame();
     requestAnimationFrame(() => {this.update()});
-    axios.get(`https://api.nasa.gov/neo/rest/v1/neo/browse?api_key=SbpWDpbPprCJtaTuRMhDd601quGYL0VrdOOO09CW`)
-      .then(res => {
-        // get only asteroids that have close_approach_data
-        var closeAppoachAsteroids = res.data.near_earth_objects
-          .filter(function(asteroid) {
-            return asteroid.close_approach_data.length > 0;
-          });
-        var mappedAsteroidData = closeAppoachAsteroids.map(function(asteroid) {
-          var sizeInKm = asteroid.estimated_diameter.kilometers;
-          return {
-            name: asteroid.name,
-            earliestApproachDate: asteroid.close_approach_data[0].close_approach_date,
-            missDistanceInKm: +asteroid.close_approach_data[0].miss_distance.kilometers, //convert string to number
-            orbitingBody: asteroid.close_approach_data[0].orbiting_body,
-            sizeInKm: (sizeInKm.estimated_diameter_max + sizeInKm.estimated_diameter_min) / 2,
-            speedInKm: +asteroid.close_approach_data[0].relative_velocity.kilometers_per_hour //convert string to number
-          }
-        });
 
-        this.setState({ asteroidData: mappedAsteroidData });
-      });
+    window.requestAnimFrame=function(){return window.requestAnimationFrame||window.webkitRequestAnimationFrame||window.mozRequestAnimationFrame||window.oRequestAnimationFrame||window.msRequestAnimationFrame||function(a){window.setTimeout(a,1E3/60)}}();
+
+    var ctx = document.querySelector('#bg').getContext('2d')
+    if(ctx != null){
+      ctx.save();
+      //ctx.scale(this.state.screen.ratio, this.state.screen.ratio);
+      
+      var cw = ctx.width = this.state.screen.width;
+      var ch = ctx.height = this.state.screen.height;
+      var rand = function(a,b){return ~~((Math.random()*(b-a+1))+a);}
+          
+      var updateAll = function(a){
+        var i = a.length;
+        while(i--){
+          a[i].update(i);  
+        }
+      }
+            
+      var renderAll = function(a){
+        var i = a.length;
+        while(i--){
+          a[i].render(i);  
+        }
+      }
+
+      var stars = [];
+
+      var Star = function(x, y, radius, speed){
+        this.x = x;
+        this.y = y;
+        this.speed = (speed/25);
+        this.radius = radius;
+        this.saturation = (20+(this.radius)*5);
+        this.lightness = (8+this.radius*4);
+      }
+        
+      Star.prototype = {
+        update: function(i){
+          this.x += this.speed;
+          if(this.x - this.radius >= cw){
+            this.x = rand(0, ch-this.radius)
+            this.x = -this.radius;
+          }
+      },
+      render: function(){
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, (this.radius < 0) ? 0 : this.radius, 0, Math.PI *2, false);
+        var flickerAdd = (rand(0, 140) === 0) ? rand(5, 20) : 0;
+        ctx.fillStyle = 'hsl(240, '+this.saturation+'%, '+(this.lightness+flickerAdd)+'%)';
+        ctx.fill();
+
+        }
+      }
+          
+      var makeStarfield = function(){
+        var base = .75;
+        var inc = .2;
+        var count = 40;
+        var per = 6;
+        while(count--){
+          var radius = base + inc;
+          var perTime = per;
+          while(perTime--){
+            radius += inc;
+            stars.push(new Star(rand(0, cw-radius), rand(0, ch-radius), radius, radius*3));
+          }
+        }
+      }
+
+      var loop = function(){
+        window.requestAnimFrame(loop);
+        updateAll(stars);
+         
+        renderAll(stars);
+      }
+          
+      makeStarfield();      
+      loop();
+
+
+      }
 
   }
 
@@ -114,9 +198,9 @@ export class Reacteroids extends Component {
     context.scale(this.state.screen.ratio, this.state.screen.ratio);
 
     // Motion trail
-    context.fillStyle = '#000';
     context.globalAlpha = 0.4;
     context.fillRect(0, 0, this.state.screen.width, this.state.screen.height);
+    context.clearRect(0, 0, this.state.screen.width, this.state.screen.height)
     context.globalAlpha = 1;
 
     // Next set of asteroids
@@ -136,8 +220,22 @@ export class Reacteroids extends Component {
     this.updateObjects(this.bullets, 'bullets')
     this.updateObjects(this.ship, 'ship')
 
+
+
     context.restore();
 
+    var ctx = document.querySelector('#bg').getContext('2d')
+    if(ctx != null){
+      ctx.save()
+      ctx.scale(this.state.screen.ratio, this.state.screen.ratio);
+      
+      var cw = ctx.width = this.state.screen.width;
+      var ch = ctx.height = this.state.screen.height;
+      ctx.fillRect(0, 0, this.state.screen.width, this.state.screen.height);
+      ctx.clearRect(0, 0, this.state.screen.width, this.state.screen.height); 
+
+      ctx.restore() 
+    }
     // Next frame
     requestAnimationFrame(() => {this.update()});
   }
@@ -170,6 +268,7 @@ export class Reacteroids extends Component {
     // Make asteroids
     this.asteroids = [];
     this.generateAsteroids(this.state.asteroidCount)
+    
   }
 
   gameOver(){
@@ -187,13 +286,17 @@ export class Reacteroids extends Component {
   }
 
   generateAsteroids(count){
-    var dataForAsteroids = this.state.asteroidData
+    
     let asteroids = [];
     let ship = this.ship[0];
-    for (let i = 0; i < count; i++) {
-     //var theAsteroid = asteroidsToCreate[i]
-      console.log('dfadsadf')
-      let asteroid = new Asteroid({
+
+    for (let i = 0; i < count && this.state.asteroidData.length > 0 ; i++) {
+      
+
+      if(this.state.asteroidData[i]){
+
+        let asteroid = new Asteroid({
+
         size: 80,
         position: {
           x: randomNumBetweenExcluding(0, this.state.screen.width, ship.position.x-60, ship.position.x+60),
@@ -201,16 +304,16 @@ export class Reacteroids extends Component {
         },
         create: this.createObject.bind(this),
         addScore: this.addScore.bind(this),
-        isChunk: false
-      });
-      this.createObject(asteroid, 'asteroids');
-      console.log(this.state.asteroidData)
-      //this.setState({asteroidData: this.state.asteroidData.slice(1)})
-    
-    
-        console.log("new array", this.state.asteroidData.0)
+        isChunk: false,
+        theAsteroidData: this.state.asteroidData[i]
       
-    
+        });
+
+        this.createObject(asteroid, 'asteroids');
+       
+        this.setState({asteroidData: this.state.asteroidData.slice(1)})
+
+      }
 
     }
 
@@ -262,7 +365,7 @@ export class Reacteroids extends Component {
     let endgame;
     let message;
 
-    console.log(this.state.asteroidData)
+    console.log('this.state.asteroidData', this.state.asteroidData)
 
     if (this.state.currentScore <= 0) {
       message = '0 points... So sad.';
@@ -287,7 +390,8 @@ export class Reacteroids extends Component {
 
     return (
       <div>
-        <div className="bg"></div>
+
+        
         { endgame }
         <span className="score current-score" >Score: {this.state.currentScore}</span>
         <span className="score top-score" >Top Score: {this.state.topScore}</span>
@@ -295,10 +399,18 @@ export class Reacteroids extends Component {
           Use [A][S][W][D] or [←][↑][↓][→] to MOVE<br/>
           Use [SPACE] to SHOOT
         </span>
+        <canvas id="bg" ref="bgCanvas"
+          width={this.state.screen.width * this.state.screen.ratio}
+          height={this.state.screen.height * this.state.screen.ratio}
+
+        />
+        <div id="light"></div>
         <canvas ref="canvas"
           width={this.state.screen.width * this.state.screen.ratio}
           height={this.state.screen.height * this.state.screen.ratio}
+
         />
+
       </div>
     );
   }
