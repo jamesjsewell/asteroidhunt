@@ -5,7 +5,7 @@ var config = require('./webpack.config.dev');
 
 var app = express();
 var compiler = webpack(config);
-process.env.NODE_ENV = 'production'
+
 
 app.use(require('webpack-dev-middleware')(compiler, {
   noInfo: true,
