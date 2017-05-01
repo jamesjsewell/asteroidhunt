@@ -5,6 +5,8 @@ import { randomNumBetweenExcluding } from './helpers';
 import Backbone from 'backbone'
 import axios from 'axios'
 import asteroidApiObj from './asteroidApiObj.js'
+import STORE from './STORE.js'
+
 const KEY = {
   LEFT:  37,
   RIGHT: 39,
@@ -55,8 +57,10 @@ export class Reacteroids extends Component {
       currentScore: 0,
       topScore: localStorage['topscore'] || 0,
       inGame: false,
-      backgroundCanvas: null
+      backgroundCanvas: null,
+      recentlyDestroyed: STORE.data.recentlyDestroyed
     }
+
     this.ship = [];
     this.asteroids = [];
     this.bullets = [];
@@ -88,6 +92,8 @@ export class Reacteroids extends Component {
 
   componentDidMount() {
 
+
+
     window.addEventListener('keyup',   this.handleKeys.bind(this, false));
     window.addEventListener('keydown', this.handleKeys.bind(this, true));
     window.addEventListener('resize',  this.handleResize.bind(this, false));
@@ -111,6 +117,12 @@ export class Reacteroids extends Component {
     window.removeEventListener('resize', this.handleResize);
   }
 
+  componentWillMount() {
+    STORE.on('dataUpdated', () => {
+      this.setState(Object.assign(this.state,STORE.data.recentlyDestroyed))
+    })
+
+  }
 
   update() {
     const context = this.state.context;
@@ -354,6 +366,18 @@ export class Reacteroids extends Component {
 
     console.log('this.state.asteroidData', this.state.asteroidData)
 
+    var showAsteroidData = false
+    var asteroidName = ""
+    var asteroidOrbiting = ""
+    var missDistanceInKm = ""
+    if(STORE.data.recentlyDestroyed != null){
+      var asteroid = STORE.data.recentlyDestroyed
+      asteroidName = asteroid.name
+      asteroidOrbiting = asteroid.orbitingBody
+      missDistanceInKm = asteroid.missDistanceInKm
+      showAsteroidData = true
+    }
+
     if (this.state.currentScore <= 0) {
       message = '0 points... So sad.';
     } else if (this.state.currentScore >= this.state.topScore){
@@ -385,6 +409,11 @@ export class Reacteroids extends Component {
         <span className="controls" >
           Use [A][S][W][D] or [←][↑][↓][→] to MOVE<br/>
           Use [SPACE] to SHOOT
+        </span>
+        <span className={showAsteroidData ? "recently_destroyed" : 'hidden'} >
+          {asteroidName}<br/>
+          orbiting {asteroidOrbiting}<br/>
+          {missDistanceInKm} km from {asteroidOrbiting}<br/>
         </span>
         <canvas id="bg" ref="bgCanvas"
           width={this.state.screen.width * this.state.screen.ratio}

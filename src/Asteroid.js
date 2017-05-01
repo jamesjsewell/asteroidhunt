@@ -1,6 +1,7 @@
 import Particle from './Particle';
 import Popup from './popup';
 import { asteroidVertices, randomNumBetween } from './helpers';
+import STORE from './STORE'
 
 export default class Asteroid {
 
@@ -89,7 +90,7 @@ export default class Asteroid {
     }
 
     if(this.isChunk === false){
-
+      STORE._set({recentlyDestroyed: this.theAsteroidData})
       const popup = new Popup({
 
         lifeSpan: 500,

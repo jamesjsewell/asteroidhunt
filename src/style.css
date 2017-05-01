@@ -1,3 +1,7 @@
+.hidden{
+  display: none;
+}
+
 body {
   padding: 0;
   margin: 0;
@@ -38,6 +42,20 @@ canvas {
   text-align: center;
   line-height: 1.6;
 }
+
+.recently_destroyed{
+  display: block;
+  position: absolute;
+  top: 50px;
+  left: 80%;
+  transform: translate(-50%, 0);
+  z-index: 1;
+  font-size: 1.5rem;
+  text-align: center;
+  line-height: 1.6;
+  opacity: .4;
+}
+
 .endgame{
   position: absolute;
   top: 50%;
