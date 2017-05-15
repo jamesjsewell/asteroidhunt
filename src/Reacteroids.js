@@ -4,8 +4,9 @@ import Asteroid from './Asteroid';
 import { randomNumBetweenExcluding } from './helpers';
 import Backbone from 'backbone'
 import axios from 'axios'
-import asteroidApiObj from './asteroidApiObj.js'
 import STORE from './STORE.js'
+import $ from 'jquery'
+var apiKey = "hvJyFR86CYgKKlWOyXdyfK2jos17OQjaMTRwxYES"
 
 const KEY = {
   LEFT:  37,
@@ -18,28 +19,13 @@ const KEY = {
 };
 
 export class Reacteroids extends Component {
-  constructor() {
-    // get only asteroids that have close_approach_data
-    var closeAppoachAsteroids = asteroidApiObj.near_earth_objects
-      .filter(function(asteroid) {
-        return asteroid.close_approach_data.length > 0;
-      });
-    var mappedAsteroidData = closeAppoachAsteroids.map(function(asteroid) {
-      var sizeInKm = asteroid.estimated_diameter.kilometers;
-      return {
-        name: asteroid.name,
-        earliestApproachDate: asteroid.close_approach_data[0].close_approach_date,
-        missDistanceInKm: +asteroid.close_approach_data[0].miss_distance.kilometers, //convert string to number
-        orbitingBody: asteroid.close_approach_data[0].orbiting_body,
-        sizeInKm: (sizeInKm.estimated_diameter_max + sizeInKm.estimated_diameter_min) / 2,
-        speedInKm: +asteroid.close_approach_data[0].relative_velocity.kilometers_per_hour //convert string to number
-      }
-    });
 
-    console.log('mappedAsteroidData', mappedAsteroidData);
+  constructor() {
+
     super();
     this.state = {
-      asteroidData: mappedAsteroidData,
+      dataLoaded: false,
+      asteroidData: {},
       screen: {
         width: window.innerWidth,
         height: window.innerHeight,
@@ -53,7 +39,7 @@ export class Reacteroids extends Component {
         down  : 0,
         space : 0,
       },
-      asteroidCount: 1,
+      asteroidCount: 0,
       currentScore: 0,
       topScore: localStorage['topscore'] || 0,
       inGame: false,
@@ -92,20 +78,20 @@ export class Reacteroids extends Component {
 
   componentDidMount() {
 
+    
+      window.addEventListener('keyup',   this.handleKeys.bind(this, false));
+      window.addEventListener('keydown', this.handleKeys.bind(this, true));
+      window.addEventListener('resize',  this.handleResize.bind(this, false));
 
+      // if(this.state.dataLoaded === true){
+      const context = this.refs.canvas.getContext('2d');
+      const background = document.querySelector('#bg').getContext('2d')
+     
+      this.setState({ context: context, backgroundCanvas: background});
+      this.startGame();
+      requestAnimationFrame(() => {this.update()});
 
-    window.addEventListener('keyup',   this.handleKeys.bind(this, false));
-    window.addEventListener('keydown', this.handleKeys.bind(this, true));
-    window.addEventListener('resize',  this.handleResize.bind(this, false));
-
-    const context = this.refs.canvas.getContext('2d');
-    const background = document.querySelector('#bg').getContext('2d')
-   
-    this.setState({ context: context, backgroundCanvas: background});
-    this.startGame();
-    requestAnimationFrame(() => {this.update()});
-
-    window.requestAnimFrame=function(){return window.requestAnimationFrame||window.webkitRequestAnimationFrame||window.mozRequestAnimationFrame||window.oRequestAnimationFrame||window.msRequestAnimationFrame||function(a){window.setTimeout(a,1E3/60)}}();
+      window.requestAnimFrame=function(){return window.requestAnimationFrame||window.webkitRequestAnimationFrame||window.mozRequestAnimationFrame||window.oRequestAnimationFrame||window.msRequestAnimationFrame||function(a){window.setTimeout(a,1E3/60)}}();
 
     
 
@@ -118,6 +104,47 @@ export class Reacteroids extends Component {
   }
 
   componentWillMount() {
+
+    var day = new Date()
+      console.log(day)
+      var dateSelect = "&start_date=2017-5-9&end_date=2017-5-3"
+      var apiUrl = "https://api.nasa.gov/neo/rest/v1/neo/browse?page=0"+dateSelect+"&orbiting_body=Earth"+"&api_key="+apiKey
+      var asteroidApiObj = $.getJSON(apiUrl)
+      asteroidApiObj.then((asteroidApiObj)=>{
+
+        console.log(asteroidApiObj)
+        var closeAppoachAsteroids = asteroidApiObj.near_earth_objects
+          .filter(function(asteroid) {
+            return asteroid.close_approach_data.length > 0;
+          });
+
+        console.log(closeAppoachAsteroids)
+        var mappedAsteroidData = closeAppoachAsteroids.map(function(asteroid) {
+          var sizeInKm = asteroid.estimated_diameter.kilometers;
+          return {
+            name: asteroid.name,
+            earliestApproachDate: asteroid.close_approach_data[0].close_approach_date,
+            missDistanceInKm: Number(+asteroid.close_approach_data[0].miss_distance.kilometers), //convert string to number
+            orbitingBody: asteroid.close_approach_data[0].orbiting_body,
+            sizeInKm: (sizeInKm.estimated_diameter_max + sizeInKm.estimated_diameter_min) / 2,
+            speedInKm: Number(+asteroid.close_approach_data[0].relative_velocity.kilometers_per_hour),
+            hazardous: asteroid.is_potentially_hazardous_asteroid
+          }
+        });
+
+        this.setState({
+          inGame: true,
+          currentScore: 0,
+          asteroidData: mappedAsteroidData,
+          dataLoaded: true
+        });
+
+        console.log(this.state)
+
+        this.startGame()
+      
+      })
+
     STORE.on('dataUpdated', () => {
       this.setState(Object.assign(this.state,STORE.data.recentlyDestroyed))
     })
@@ -139,7 +166,7 @@ export class Reacteroids extends Component {
     context.globalAlpha = 1;
 
     // Next set of asteroids
-    if(!this.asteroids.length){
+    if(!this.asteroids.length && this.state.dataLoaded === true){
       let count = this.state.asteroidCount + 1;
       this.setState({ asteroidCount: count });
       this.generateAsteroids(count)
@@ -154,8 +181,6 @@ export class Reacteroids extends Component {
     this.updateObjects(this.asteroids, 'asteroids')
     this.updateObjects(this.bullets, 'bullets')
     this.updateObjects(this.ship, 'ship')
-
-
 
     context.restore();
 
@@ -248,6 +273,7 @@ export class Reacteroids extends Component {
   }
 
   startGame(){
+
     this.setState({
       inGame: true,
       currentScore: 0,
@@ -265,8 +291,8 @@ export class Reacteroids extends Component {
     this.createObject(ship, 'ship');
 
     // Make asteroids
-    this.asteroids = [];
-    this.generateAsteroids(this.state.asteroidCount)
+    
+    
     
   }
 
@@ -285,11 +311,12 @@ export class Reacteroids extends Component {
   }
 
   generateAsteroids(count){
-    
+    // x: randomNumBetweenExcluding(0, this.state.screen.width, ship.position.x-60, ship.position.x+60),
+    //       y: randomNumBetweenExcluding(0, this.state.screen.height, ship.position.y-60, ship.position.y+60)
     let asteroids = [];
     let ship = this.ship[0];
-
-    for (let i = 0; i < count && this.state.asteroidData.length > 0 ; i++) {
+    console.log(count)
+    for (let i = 0; i < count; i++) {
       
 
       if(this.state.asteroidData[i]){
@@ -298,8 +325,8 @@ export class Reacteroids extends Component {
 
         size: 80,
         position: {
-          x: randomNumBetweenExcluding(0, this.state.screen.width, ship.position.x-60, ship.position.x+60),
-          y: randomNumBetweenExcluding(0, this.state.screen.height, ship.position.y-60, ship.position.y+60)
+          x: randomNumBetweenExcluding(0, this.state.screen.width, this.state.screen.width+60, this.state.screen.height+60),
+          y: randomNumBetweenExcluding(0, this.state.screen.height, this.state.screen.width+60, this.state.screen.height+60)
         },
         create: this.createObject.bind(this),
         addScore: this.addScore.bind(this),
@@ -361,49 +388,54 @@ export class Reacteroids extends Component {
   }
 
   render() {
-    let endgame;
-    let message;
 
-    console.log('this.state.asteroidData', this.state.asteroidData)
+      let endgame;
+      let message;
 
-    var showAsteroidData = false
-    var asteroidName = ""
-    var asteroidOrbiting = ""
-    var missDistanceInKm = ""
-    if(STORE.data.recentlyDestroyed != null){
-      var asteroid = STORE.data.recentlyDestroyed
-      asteroidName = asteroid.name
-      asteroidOrbiting = asteroid.orbitingBody
-      missDistanceInKm = asteroid.missDistanceInKm
-      showAsteroidData = true
-    }
+      var showAsteroidData = false
+      var asteroidName = ""
+      var asteroidOrbiting = ""
+      var missDistanceInKm = ""
+      if(STORE.data.recentlyDestroyed != null){
+        var asteroid = STORE.data.recentlyDestroyed
+        asteroidName = asteroid.name
+        asteroidOrbiting = asteroid.orbitingBody
+        missDistanceInKm = asteroid.missDistanceInKm
+        showAsteroidData = true
+      }
 
-    if (this.state.currentScore <= 0) {
-      message = '0 points... So sad.';
-    } else if (this.state.currentScore >= this.state.topScore){
-      message = 'Top score with ' + this.state.currentScore + ' points. Woo!';
-    } else {
-      message = this.state.currentScore + ' Points though :)'
-    }
+      if (this.state.currentScore <= 0) {
+        message = '0 points... So sad.';
+      } else if (this.state.currentScore >= this.state.topScore){
+        message = 'Top score with ' + this.state.currentScore + ' points. Woo!';
+      } else {
+        message = this.state.currentScore + ' Points though :)'
+      }
 
-    if(!this.state.inGame){
-      endgame = (
-        <div className="endgame">
-          <p>Game over, man!</p>
-          <p>{message}</p>
-          <button
-            onClick={ this.startGame.bind(this) }>
-            try again?
-          </button>
-        </div>
-      )
-    }
-
-    return (
+      if(!this.state.inGame){
+        endgame = (
+          <div className="endgame">
+            <p>Game over, man!</p>
+            <p>{message}</p>
+            <button
+              onClick={ this.startGame.bind(this) }>
+              try again?
+            </button>
+          </div>
+        )
+      }
+      if(!this.state.dataLoaded){
+        var loading = (
+          <div className="endgame">
+            <p>Loading Asteroid Data</p>
+          </div>
+        )
+      }
+      return (
       <div>
-
         
         { endgame }
+        { loading }
         <span className="score current-score" >Score: {this.state.currentScore}</span>
         <span className="score top-score" >Top Score: {this.state.topScore}</span>
         <span className="controls" >
@@ -428,6 +460,10 @@ export class Reacteroids extends Component {
         />
 
       </div>
-    );
+    )
+
   }
 }
+
+
+
