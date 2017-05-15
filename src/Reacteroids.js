@@ -6,6 +6,17 @@ import Backbone from 'backbone'
 import axios from 'axios'
 import STORE from './STORE.js'
 import $ from 'jquery'
+import moment from 'moment';
+import 'moment/locale/pt-br';
+console.log(moment.locale()); 
+
+//getting the date
+var fullDate = new Date;
+var theDate = String(fullDate).split(" ")
+var theDay = theDate[2]
+var theMonth = theDate[1]
+var theYear = theDate[3]
+
 var apiKey = "hvJyFR86CYgKKlWOyXdyfK2jos17OQjaMTRwxYES"
 
 const KEY = {
@@ -105,49 +116,11 @@ export class Reacteroids extends Component {
 
   componentWillMount() {
 
-    var day = new Date()
-      console.log(day)
-      var dateSelect = "&start_date=2017-5-9&end_date=2017-5-3"
-      var apiUrl = "https://api.nasa.gov/neo/rest/v1/neo/browse?page=0"+dateSelect+"&orbiting_body=Earth"+"&api_key="+apiKey
-      var asteroidApiObj = $.getJSON(apiUrl)
-      asteroidApiObj.then((asteroidApiObj)=>{
-
-        console.log(asteroidApiObj)
-        var closeAppoachAsteroids = asteroidApiObj.near_earth_objects
-          .filter(function(asteroid) {
-            return asteroid.close_approach_data.length > 0;
-          });
-
-        console.log(closeAppoachAsteroids)
-        var mappedAsteroidData = closeAppoachAsteroids.map(function(asteroid) {
-          var sizeInKm = asteroid.estimated_diameter.kilometers;
-          return {
-            name: asteroid.name,
-            earliestApproachDate: asteroid.close_approach_data[0].close_approach_date,
-            missDistanceInKm: Number(+asteroid.close_approach_data[0].miss_distance.kilometers), //convert string to number
-            orbitingBody: asteroid.close_approach_data[0].orbiting_body,
-            sizeInKm: (sizeInKm.estimated_diameter_max + sizeInKm.estimated_diameter_min) / 2,
-            speedInKm: Number(+asteroid.close_approach_data[0].relative_velocity.kilometers_per_hour),
-            hazardous: asteroid.is_potentially_hazardous_asteroid
-          }
-        });
-
-        this.setState({
-          inGame: true,
-          currentScore: 0,
-          asteroidData: mappedAsteroidData,
-          dataLoaded: true
-        });
-
-        console.log(this.state)
-
-        this.startGame()
-      
-      })
-
     STORE.on('dataUpdated', () => {
       this.setState(Object.assign(this.state,STORE.data.recentlyDestroyed))
     })
+
+    
 
   }
 
@@ -273,10 +246,11 @@ export class Reacteroids extends Component {
   }
 
   startGame(){
-
+    this.asteroids = []
     this.setState({
       inGame: true,
       currentScore: 0,
+      asteroidCount: 0
     });
 
     // Make ship
@@ -291,14 +265,56 @@ export class Reacteroids extends Component {
     this.createObject(ship, 'ship');
 
     // Make asteroids
+    if(this.state.dataLoaded != true){
+      
+      //var dateSelect = "&end_date="+theDay+"-"+theMonth+"-"+theYear
+      var apiUrl = "https://api.nasa.gov/neo/rest/v1/neo/browse?page=0"+"&orbiting_body=Earth"+"&api_key="+apiKey
+      var asteroidApiObj = $.getJSON(apiUrl)
+      asteroidApiObj.then((asteroidApiObj)=>{
+
+        console.log(asteroidApiObj)
+        var closeAppoachAsteroids = asteroidApiObj.near_earth_objects
+          .filter(function(asteroid) {
+            return asteroid.close_approach_data.length > 0 //&& asteroid.close_approach_data[asteroid.close_approach_data.length-1].orbiting_body === "Earth"
+          });
+
+        console.log(closeAppoachAsteroids)
+        var mappedAsteroidData = closeAppoachAsteroids.map(function(asteroid) {
+          var sizeInKm = asteroid.estimated_diameter.kilometers;
+          var close = asteroid.close_approach_data[asteroid.close_approach_data.length-1]
+
+          return {
+            name: asteroid.name,
+            futureApproachDate: close.close_approach_date,
+            missDistanceInKm: Number(close.miss_distance.kilometers), //convert string to number
+            orbitingBody: close.orbiting_body,
+            sizeInKm: (sizeInKm.estimated_diameter_max + sizeInKm.estimated_diameter_min) / 2,
+            speedInKm: Number(+close.relative_velocity.kilometers_per_hour),
+            hazardous: asteroid.is_potentially_hazardous_asteroid
+          }
+        });
+
+        this.setState({
+          inGame: true,
+          currentScore: 0,
+          asteroidData: mappedAsteroidData,
+          dataLoaded: true
+        });
+
+        console.log(this.state)
+
+       
+      
+      })
     
-    
+    }
     
   }
 
   gameOver(){
     this.setState({
       inGame: false,
+      dataLoaded: false
     });
 
     // Replace top score
@@ -315,7 +331,7 @@ export class Reacteroids extends Component {
     //       y: randomNumBetweenExcluding(0, this.state.screen.height, ship.position.y-60, ship.position.y+60)
     let asteroids = [];
     let ship = this.ship[0];
-    console.log(count)
+  
     for (let i = 0; i < count; i++) {
       
 
@@ -397,11 +413,13 @@ export class Reacteroids extends Component {
       var asteroidOrbiting = ""
       var missDistanceInKm = ""
       if(STORE.data.recentlyDestroyed != null){
-        var asteroid = STORE.data.recentlyDestroyed
-        asteroidName = asteroid.name
-        asteroidOrbiting = asteroid.orbitingBody
-        missDistanceInKm = asteroid.missDistanceInKm
-        showAsteroidData = true
+        var asteroid = STORE.data.recentlyDestroyed,
+        asteroidName = asteroid.name,
+        asteroidOrbiting = asteroid.orbitingBody,
+        missDistanceInKm = asteroid.missDistanceInKm,
+        showAsteroidData = true,
+        nearDate = asteroid.futureApproachDate,
+        dangerous = asteroid.hazardous ? "potentially hazardous" : "no threat"
       }
 
       if (this.state.currentScore <= 0) {
@@ -424,7 +442,7 @@ export class Reacteroids extends Component {
           </div>
         )
       }
-      if(!this.state.dataLoaded){
+      if(!this.state.dataLoaded && this.state.inGame){
         var loading = (
           <div className="endgame">
             <p>Loading Asteroid Data</p>
@@ -443,9 +461,9 @@ export class Reacteroids extends Component {
           Use [SPACE] to SHOOT
         </span>
         <span className={showAsteroidData ? "recently_destroyed" : 'hidden'} >
-          {asteroidName}<br/>
-          orbiting {asteroidOrbiting}<br/>
+          on {nearDate} {asteroidName} will be <br/>
           {missDistanceInKm} km from {asteroidOrbiting}<br/>
+          {dangerous}
         </span>
         <canvas id="bg" ref="bgCanvas"
           width={this.state.screen.width * this.state.screen.ratio}
