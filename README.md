@@ -1,3 +1,5 @@
+for the asteroids game, my team used a React implementation of asteroids. We then modified the game to our liking as we learned how the project worked. We were able to read asteroid data and assign it to asteroids in the game. I was also able to add a system that displays the ammount of points you get for destroying an asteroid or asteroid debris.
+
 # Reacteroids
 A implementation of the classic Asteroids game using React and Canvas in es6
 
